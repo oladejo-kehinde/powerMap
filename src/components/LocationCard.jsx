@@ -1,41 +1,41 @@
-// import { useState } from 'react'
-
 function LocationCard({ areaName, zone, status, lastUpdated }) {
-
-  //information calculated from props
-  const isOn = status === 'on'
-  const statusText = isOn ? 'Power On' : 'Power Off'
-  const statusColor = isOn
     ? 'bg-green-100 text-green-800 border-green-200'
-    : 'bg-red-100 text-red-800 border-red-200'
-  const dotColor = isOn ? 'bg-green-500' : 'bg-red-500'
+  const isOn = status === "on";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow duration-200 w-full">
-
-      <div className="flex items-start justify-between mb-3">
+    <article className="article w-full rounded-[1rem] border border-gray-100 bg-card p-[1.2rem] shadow-sm hover:shadow-md">
+      <header className="flex items-start justify-between mb-3">
         <div>
-          <h2 className="text-base font-semibold text-gray-900 leading-tight">
+          <p className="m-0 text-base font-semibold leading-5 text-gray-900">
             {areaName}
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">{zone}</p>
+          </p>
+          <p className="mt-0.5 m-0 text-xs text-gray-400">
+            {zone}
+          </p>
         </div>
 
-        <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${statusColor}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-          {statusText}
+        {/* Dynamic Status Badge */}
+        <span
+          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+            isOn 
+              ? "bg-status-green-bg text-status-green-text border-status-green-border" 
+              : "bg-status-red-bg text-status-red-text border-status-red-border"
+          }`}
+        >
+          {/* Status Dot */}
+          <span className={`h-1.5 w-1.5 rounded-full ${isOn ? 'bg-status-green-dot' : 'bg-status-red-dot'}`} />
+          {isOn ? "Power On" : "Power Off"}
         </span>
-      </div>
+      </header>
 
-      {/* ✅ divider is now OUTSIDE and BELOW the flex row */}
-      <div className="border-t border-gray-100 my-3" />
-
-      <p className="text-xs text-gray-400">
+      {/* Horizontal Divider */}
+      <hr className="my-3 border-0 border-t border-gray-100" />
+      
+      <p className="m-0 text-xs text-gray-400">
         Updated: <span className="text-gray-600">{lastUpdated}</span>
       </p>
-
-    </div>
-  )
+    </article>
+  );
 }
 
-export default LocationCard
+export default LocationCard;

@@ -1,1 +1,40 @@
 @import "tailwindcss";
+
+@theme {
+  --color-card: var(--card-bg-color);
+  --color-gray-900: var(--text-gray-900);
+  --color-gray-600: var(--text-gray-600);
+  --color-gray-400: var(--text-gray-400);
+  --color-gray-100: var(--border-gray-100);
+  
+  --color-status-green-bg: var(--green-bg-color);
+  --color-status-green-text: var(--power-text-green-color);
+  --color-status-green-border: var(--green-border-200);
+  --color-status-green-dot: var(--green-dot);
+
+  --color-status-red-bg: var(--red-bg-color);
+  --color-status-red-text: var(--power-text-red-color);
+  --color-status-red-border: var(--red-border-200);
+  --color-status-red-dot: var(--red-dot);
+}
+
+:root {
+  --background-color: #f9fafb;
+  --card-bg-color: #ffffff;
+  --text-gray-600: #4b5563;
+  --text-gray-400: #9ca3af;
+  --text-gray-900: #111827;
+  --border-gray-100: #f3f4f6;
+  --green-dot: #22c55e;
+  --red-dot: #ef4444; 
+  --green-border-200: #a7f3d0;
+  --red-border-200: #fecdd3;
+  --power-text-green-color: #166534;
+  --power-text-red-color: #991b1b;
+  --green-bg-color: #dcfce7;
+  --red-bg-color: #fee2e2;
+}
+
+.article {
+  transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+}

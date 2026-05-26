@@ -1,5 +1,4 @@
 function LocationCard({ areaName, zone, status, lastUpdated }) {
-    ? 'bg-green-100 text-green-800 border-green-200'
   const isOn = status === "on";
 
   return (

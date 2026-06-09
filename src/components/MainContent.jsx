@@ -1,4 +1,4 @@
-import LogForm from "./logForm"
+import LogForm from "./LogForm"
 import TopBar from "./TopBar"
 
 function MainContent({ activeView }) {

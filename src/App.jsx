@@ -1,13 +1,13 @@
 import { useState } from "react";
 import MainContent from "./components/MainContent";
-import Sidebar from "./components/Sidebar";
+import SideBar from "./components/SideBar";
 
 function App() {
   const [activeView, setActiveView] = useState('home')
 
   return (
     <div className="min-h-screen md:flex">
-      <Sidebar activeView={activeView} setActiveView={setActiveView} />
+      <SideBar activeView={activeView} setActiveView={setActiveView} />
 
       <div className="flex-1">
 

@@ -21,7 +21,7 @@ const NavButton = ({ label, view, activeView, setActiveView }) => {
   );
 };
 
-function Sidebar({ activeView, setActiveView }) {
+function SideBar({ activeView, setActiveView }) {
   return (
     <aside className="w-72 bg-brand-sidebar border-r border-brand-border h-screen hidden md:flex flex-col">
       
@@ -54,4 +54,4 @@ function Sidebar({ activeView, setActiveView }) {
   );
 }
 
-export default Sidebar;
+export default SideBar;

@@ -1,56 +1,51 @@
-import LocationCard from "./components/LocationCard";
-
-const locations = [
-  {
-    id: 1,
-    areaName: "Bodija, Ibadan",
-    zone: "Zone B . Oyo State",
-    status: "on",
-    lastUpdated: "2023-10-01 10:00 AM",
-  },
-  {
-    id: 2,
-    areaName: "Ikorodu, Lagos",
-    zone: "Zone A . Lagos State",
-    status: "off",
-    lastUpdated: "2023-10-01 9:30 AM",
-  },  
-  {
-    id: 3,
-    areaName: "Asaba, Delta",
-    zone: "Zone C . Delta State",
-    status: "on",
-    lastUpdated: "2023-10-01 11:00 AM",
-  },  
-  {
-    id: 4,
-    areaName: "kano Municipal",
-    zone: "Zone D . Kano State",
-    status: "off",
-    lastUpdated: "2023-10-01 8:45 AM",
-  }
-];
+import { useState } from "react";
+import MainContent from "./components/MainContent";
+import Sidebar from "./components/Sidebar";
 
 function App() {
-  return (
-    <div className="min-h-screen bg-[var(--background-color)] p-8">
-      <header>
-        <h1 className="m-0 text-2xl font-bold text-gray-900">
-          powerMap
-        </h1>
-        <p className="mt-1 mb-8 text-sm text-gray-400">
-          Real-time distribution updates
-        </p>
-      </header>
+  const [activeView, setActiveView] = useState('home')
 
-      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]">
-        {locations.map((location) => (
-          <LocationCard 
-            key={location.id} 
-            {...location} 
-          />
-        ))}
+  return (
+    <div className="min-h-screen md:flex">
+      <Sidebar activeView={activeView} setActiveView={setActiveView} />
+
+      <div className="flex-1">
+
+        {/* Mobile top bar */}
+        <div className="md:hidden bg-brand-sidebar border-b border-brand-border text-white flex items-center justify-between px-4 py-3">
+          
+          {/* Logo */}
+          <div className="text-brand-accent font-extrabold tracking-wide">POWERMAP</div>
+
+          {/* Nav Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveView('home')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition border ${
+                activeView === 'home'
+                  ? 'bg-brand-hover text-white border-brand-border'
+                  : 'bg-transparent text-brand-muted border-transparent hover:bg-brand-hover hover:border-brand-border'
+              }`}
+            >
+              My Dashboard
+            </button>
+            <button
+              onClick={() => setActiveView('map')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition border ${
+                activeView === 'map'
+                  ? 'bg-brand-hover text-white border-brand-border'
+                  : 'bg-transparent text-brand-muted border-transparent hover:bg-brand-hover hover:border-brand-border'
+              }`}
+            >
+              National Map
+            </button>
+          </div>
+
+        </div>
+
+        <MainContent activeView={activeView} />
       </div>
+
     </div>
   );
 }

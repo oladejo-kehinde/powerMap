@@ -9,30 +9,28 @@ export async function ensureSession() {
     return null
   }
 
-  // If session exists, return user secure ID
   if (session) {
     console.log("[Auth] Active session verified. User ID:", session.user.id)
     return session.user.id
   }
 
-  // No session? Sign them in anonymously
-  console.log(" [Auth] No session found. Signing in anonymously...")
+  console.log("[Auth] No session found. Signing in anonymously...")
   const { data, error } = await supabase.auth.signInAnonymously()
   
   if (error) {
-    console.error(" [Auth Error] Anonymous auth failed:", error.message)
+    console.error("[Auth Error] Anonymous auth failed:", error.message)
     return null
   }
   
   return data.user.id
 }
 
-// Fetch today's logs from Supabase
+// Fetch today's logs 
 export async function getLogs() {
   await ensureSession() 
 
   const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
-  console.log(` [Supabase] Fetching logs created on or after ${todayStr}...`)
+  console.log(`[Supabase] Fetching logs created on or after ${todayStr}...`)
 
   const { data, error } = await supabase
     .from('powermap_logs')
@@ -47,36 +45,37 @@ export async function getLogs() {
   return data
 }
 
-// Add a log to the crowdsourced cloud database
-export async function addLog(logEntry) {
+export async function addLog(logData) {
   const userId = await ensureSession()
   if (!userId) throw new Error("Authentication failed")
 
-  // Map frontend fields to the backend table format
-  const dbPayload = {
-    user_id: userId,
-    state: logEntry.state,
-    area: logEntry.area,
-    up_date: logEntry.upEvent.date,
-    up_time: logEntry.upEvent.time,
-    off_date: logEntry.offEvent.date,
-    off_time: logEntry.offEvent.time,
-    total_hours: parseFloat(logEntry.totalHours)
-  }
+  console.log("[Supabase] Pushing new log to the cloud...", logData)
 
   const { data, error } = await supabase
     .from('powermap_logs')
-    .insert([dbPayload])
+    .insert([
+      {
+        user_id: userId,
+        state: logData.state,
+        area: logData.area,
+        light_up_date: logData.lightUpDate,
+        light_up_time: logData.lightUpTime,
+        light_off_date: logData.lightOffDate,
+        light_off_time: logData.lightOffTime,
+        total_hours: parseFloat(logData.totalHours)
+      }
+    ])
     .select()
 
   if (error) {
-    console.error("Database insert error:", error.message)
+    console.error("[Supabase Error] Failed to insert log:", error.message)
     throw error
   }
-  return data
+
+  return data[0]
 }
 
-// Remove an individual log and (Only works if RLS allows it)
+// Remove an individual log 
 export async function removeLog(id) {
   const { error } = await supabase
     .from('powermap_logs')

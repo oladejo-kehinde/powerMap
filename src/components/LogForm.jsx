@@ -1,4 +1,6 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { addLog, getLogs } from "../utils/logStorage"
+import { calculatePowerHours } from "../utils/timeUtils"
 
 const nigerianStates = [
   "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu",
@@ -6,115 +8,186 @@ const nigerianStates = [
   "Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara",
 ]
 
-function LogForm() {
+function LogForm({ onLogAdded }) {
   const [selectedState, setSelectedState] = useState("")
   const [area, setArea] = useState("")
-  const [status, setStatus] = useState("up")
-  const [date, setDate] = useState("")
-  const [time, setTime] = useState("")
+  const [logs, setLogs] = useState([])
+  
+  const [upDate, setUpDate] = useState("")
+  const [upTime, setUpTime] = useState("")
+  const [offDate, setOffDate] = useState("")
+  const [offTime, setOffTime] = useState("")
+
+  const [feedback, setFeedback] = useState({ message: "", type: "" })
+
+  useEffect(() => {
+    const savedLogs = getLogs()
+    setLogs(Array.isArray(savedLogs) ? savedLogs : [])
+  }, [])
+
+  const showFeedback = (message, type = "success") => {
+    setFeedback({ message, type })
+    setTimeout(() => setFeedback({ message: "", type: "" }), 5000)
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+
+    if (!selectedState || !area || !upDate || !upTime || !offDate || !offTime) {
+      showFeedback("Please fill out all fields before submitting.", "error")
+      return
+    }
+
+    const upTimestamp = new Date(`${upDate}T${upTime}`)
+    const offTimestamp = new Date(`${offDate}T${offTime}`)
+
+    if (offTimestamp <= upTimestamp) {
+      showFeedback("Error: 'Light Off' time must be after 'Light Up' time.", "error")
+      return
+    }
+
+    const hours = calculatePowerHours(upDate, upTime, offDate, offTime)
+
+    const logEntry = {
+      id: Date.now(),
+      state: selectedState,
+      area,
+      upEvent: { date: upDate, time: upTime },
+      offEvent: { date: offDate, time: offTime },
+      totalHours: hours,
+      createdAt: new Date().toISOString(),
+    }
+
+    const updatedLogs = addLog(logEntry)
+    setLogs(updatedLogs)
+
+    setSelectedState("")
+    setArea("")
+    setUpDate("")
+    setUpTime("")
+    setOffDate("")
+    setOffTime("")
+
+    showFeedback(`Logged successfully! Total duration: ${hours} hours.`, "success")
+
+    // Trace log added here 
+    console.log(" [LogForm] Log submitted successfully. Calling onLogAdded() to trigger refresh...")
+    if (onLogAdded) onLogAdded()
+  }
 
   return (
-    <div className="w-full max-w-lg rounded-2xl border border-brand-border bg-brand-sidebar p-6 text-base leading-relaxed">
-
-      {/* STATE */}
-      <div className="mb-4">
+    <div className="space-y-8">
+      <form onSubmit={handleSubmit} className="w-full max-w-lg rounded-2xl border border-brand-border bg-brand-sidebar p-6 text-base leading-relaxed">
         
-        <label htmlFor="state" className="mb-1 block text-sm font-bold text-brand-accent uppercase tracking-normal">
-          State
-        </label>
-        <select
-          id="state"
-          value={selectedState}
-          onChange={(e) => setSelectedState(e.target.value)}
-          required
-          className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base font-normal text-white outline-none transition-all focus:border-brand-accent"
-        >
-          <option value="">Select your state</option>
-          {nigerianStates.map((state) => (
-            <option key={state} value={state}>{state}</option>
-          ))}
-        </select>
-      </div>
+        {feedback.message && (
+          <div className={`mb-6 p-4 rounded-xl text-sm font-semibold border ${
+            feedback.type === "error" 
+              ? "bg-red-500/10 border-red-500/30 text-red-400" 
+              : "bg-green-500/10 border-green-500/30 text-green-400"
+          }`}>
+            {feedback.message}
+          </div>
+        )}
 
-      {/* Input Area */}
-      <div className="mb-4">
-        <label htmlFor="area" className="mb-1 block text-sm font-bold text-brand-accent uppercase tracking-normal">
-          Area / Neighbourhood
-        </label>
-        <input
-          type="text"
-          id="area"
-          value={area}
-          onChange={(e) => setArea(e.target.value)}
-          placeholder="surulere, wuse2..."
-          required
-          className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base font-normal text-white outline-none transition-all focus:border-brand-accent"
-        />
-      </div>
-
-      {/* POWER STATUS */}
-      <div className="mb-4">
-        <label className="block mb-2 text-xs font-medium text-brand-muted tracking-normal">
-          Power Status
-        </label>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => setStatus(status === "up" ? "off" : "up")}
-            aria-pressed={status === "up"}
-            className={`relative inline-flex h-8 w-22 items-center rounded-full p-1 transition-colors duration-300 border border-brand-border ${
-              status === "up" ? "justify-end bg-green-500" : "justify-start bg-red-500"
-            }`}
+        {/* STATE */}
+        <div className="mb-4">
+          <label htmlFor="state" className="mb-1 block text-sm font-bold text-brand-accent uppercase tracking-normal">
+            State
+          </label>
+          <select
+            id="state"
+            value={selectedState}
+            onChange={(e) => setSelectedState(e.target.value)}
+            required
+            className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base font-normal text-white outline-none transition-all focus:border-brand-accent"
           >
-            <span className="h-6 w-6 rounded-full bg-white shadow-md transition-all duration-300" />
-          </button>
-          <span className="text-sm font-semibold text-brand-accent min-w-[70px]">
-            {status === "up" ? "Light Up" : "Light Off"}
-          </span>
+            <option value="">Select your state</option>
+            {nigerianStates.map((state) => (
+              <option key={state} value={state}>{state}</option>
+            ))}
+          </select>
         </div>
-      </div>
 
-      {/* DATE + TIME */}
-      <div className="mb-4 grid grid-cols-2 gap-4">
-
-        {/* DATE */}
-        <div>
-          <label htmlFor="date" className="mb-1 block text-sm font-bold text-brand-accent uppercase tracking-normal">
-            Date
+        {/* Input Area */}
+        <div className="mb-4">
+          <label htmlFor="area" className="mb-1 block text-sm font-bold text-brand-accent uppercase tracking-normal">
+            Area / Neighbourhood
           </label>
           <input
-            type="date"
-            id="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            type="text"
+            id="area"
+            value={area}
+            onChange={(e) => setArea(e.target.value)}
+            placeholder="surulere, wuse2..."
             required
-            style={{ colorScheme: "dark" }}
-            className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base font-normal text-white outline-none transition focus:border-brand-accent"
+            className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base font-normal text-white outline-none transition-all focus:border-brand-accent"
           />
         </div>
 
-        {/* TIME */}
-        <div>
-          <label htmlFor="time" className="mb-1 block text-sm font-bold text-brand-accent uppercase tracking-normal">
-            Time
-          </label>
-          <input
-            type="time"
-            id="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            required
-            style={{ colorScheme: "dark" }}
-            className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base font-normal text-white outline-none transition focus:border-brand-accent"
-          />
+        <hr className="border-brand-border my-6" />
+
+        {/* LIGHT UP INPUTS */}
+        <h3 className="text-sm font-bold text-green-400 uppercase mb-3 tracking-wide"> Light Up </h3>
+        <div className="mb-6 grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="upDate" className="mb-1 block text-xs font-semibold text-brand-muted uppercase">Date</label>
+            <input
+              type="date"
+              id="upDate"
+              value={upDate}
+              onChange={(e) => setUpDate(e.target.value)}
+              required
+              style={{ colorScheme: "dark" }}
+              className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base text-white outline-none focus:border-brand-accent"
+            />
+          </div>
+          <div>
+            <label htmlFor="upTime" className="mb-1 block text-xs font-semibold text-brand-muted uppercase">Time</label>
+            <input
+              type="time"
+              id="upTime"
+              value={upTime}
+              onChange={(e) => setUpTime(e.target.value)}
+              required
+              style={{ colorScheme: "dark" }}
+              className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base text-white outline-none focus:border-brand-accent"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* BUTTON */}
-      <button className="w-full rounded-xl border border-brand-border py-3 text-sm font-semibold text-white transition hover:bg-brand-hover">
-        Log Event
-      </button>
+        {/* LIGHT OFF INPUTS */}
+        <h3 className="text-sm font-bold text-red-400 uppercase mb-3 tracking-wide"> Light Off </h3>
+        <div className="mb-6 grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="offDate" className="mb-1 block text-xs font-semibold text-brand-muted uppercase">Date</label>
+            <input
+              type="date"
+              id="offDate"
+              value={offDate}
+              onChange={(e) => setOffDate(e.target.value)}
+              required
+              style={{ colorScheme: "dark" }}
+              className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base text-white outline-none focus:border-brand-accent"
+            />
+          </div>
+          <div>
+            <label htmlFor="offTime" className="mb-1 block text-xs font-semibold text-brand-muted uppercase">Time</label>
+            <input
+              type="time"
+              id="offTime"
+              value={offTime}
+              onChange={(e) => setOffTime(e.target.value)}
+              required
+              style={{ colorScheme: "dark" }}
+              className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base text-white outline-none focus:border-brand-accent"
+            />
+          </div>
+        </div>
 
+        <button type="submit" className="w-full rounded-xl border border-brand-border bg-brand-accent/10 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800">
+          Log Event
+        </button>
+      </form>
     </div>
   )
 }

@@ -4,6 +4,10 @@ import SideBar from "./components/SideBar";
 
 function App() {
   const [activeView, setActiveView] = useState('home')
+  
+  // State trigger to instantly sync LogForm submissions with the HistoryFeed
+  const [refreshTrigger, setRefreshTrigger] = useState(false)
+  const triggerRefresh = () => setRefreshTrigger(prev => !prev)
 
   return (
     <div className="min-h-screen md:flex">
@@ -43,7 +47,12 @@ function App() {
 
         </div>
 
-        <MainContent activeView={activeView} />
+        {/* Passed down the refresh state and handler to MainContent */}
+        <MainContent 
+          activeView={activeView} 
+          refreshTrigger={refreshTrigger} 
+          onLogAdded={triggerRefresh} 
+        />
       </div>
 
     </div>

@@ -4,7 +4,7 @@ function TopBar() {
 
       {/* Left — Location */}
       <div className="flex items-center gap-2">
-        <span className="text-base">📍</span>
+        
         <div>
           <p className="text-sm font-semibold text-brand-text">Detecting location...</p>
           <p className="text-xs text-brand-muted">Enable GPS for auto-detection</p>

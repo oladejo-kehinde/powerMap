@@ -25,31 +25,46 @@ export async function ensureSession() {
   return data.user.id
 }
 
-// Fetch today's logs 
+// 1. CLOUD SYNCING: READ ALL NATIONAL RECENT LOGS
+// Fetches records from the last 24 hours for the overview page
 export async function getLogs() {
   await ensureSession() 
 
-  const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
-  console.log(`[Supabase] Fetching logs created on or after ${todayStr}...`)
+  // Get the timestamp for exactly 24 hours ago
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  console.log("[Supabase] Fetching national logs since:", twentyFourHoursAgo)
 
   const { data, error } = await supabase
     .from('powermap_logs')
     .select('*')
-    .gte('created_at', `${todayStr}T00:00:00.000Z`)
+    .gte('created_at', twentyFourHoursAgo)
     .order('created_at', { ascending: false })
 
   if (error) {
     console.error("Error fetching logs from database:", error.message)
-    return []
+    // Fallback to local storage if network fails completely
+    const localFallback = localStorage.getItem("powermap_local_logs")
+    return localFallback ? JSON.parse(localFallback) : []
   }
   return data
 }
 
+// 2. CLOUD SYNCING: WRITE TO BOTH LOCAL AND CLOUD
 export async function addLog(logData) {
+  // --- Step A: Save to Local Storage first for instant personal math ---
+  const localLogs = localStorage.getItem("powermap_local_logs")
+  const currentLogs = localLogs ? JSON.parse(localLogs) : []
+  
+  // Keep your detailed frontend object intact locally
+  const updatedLocalLogs = [logData, ...currentLogs]
+  localStorage.setItem("powermap_local_logs", JSON.stringify(updatedLocalLogs))
+  console.log("[Local Storage] Log saved locally.")
+
+  // --- Step B: Push clean row to Supabase ---
   const userId = await ensureSession()
   const finalUserId = userId || "anonymous-offline-user"
 
-  console.log("[Supabase] Pushing new log to the cloud...", logData)
+  console.log("[Supabase] Syncing new log to the cloud...")
 
   const { data, error } = await supabase
     .from('powermap_logs')
@@ -68,23 +83,30 @@ export async function addLog(logData) {
     .select()
 
   if (error) {
-    console.error("[Supabase Error] Failed to insert log:", error.message)
-    throw error
+    console.error("[Supabase Sync Error] Cloud write failed:", error.message)
+    // Don't crash the app, since it already saved locally
   }
 
-  return data[0]
+  // Return the full updated local array so your UI state updates instantly
+  return updatedLocalLogs
 }
-    
 
-// Remove an individual log 
-export async function removeLog(id) {
+// Remove an individual log from both environments
+export async function removeLog(id, createdAt) {
+  // Remove locally
+  const localLogs = localStorage.getItem("powermap_local_logs")
+  if (localLogs) {
+    const currentLogs = JSON.parse(localLogs)
+    const filtered = currentLogs.filter(log => log.id !== id)
+    localStorage.setItem("powermap_local_logs", JSON.stringify(filtered))
+  }
+
+  // Remove from Cloud using database ID or timestamp matching
   const { error } = await supabase
     .from('powermap_logs')
     .delete()
-    .eq('id', id)
+    .eq('user_id', await ensureSession())
+    .eq('up_date', createdAt.split('T')[0]) // match simple date mapping
 
-  if (error) {
-    console.error("Database delete error:", error.message)
-    throw error
-  }
+  if (error) console.error("Database delete error:", error.message)
 }

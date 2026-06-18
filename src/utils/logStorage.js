@@ -47,7 +47,7 @@ export async function getLogs() {
 
 export async function addLog(logData) {
   const userId = await ensureSession()
-  if (!userId) throw new Error("Authentication failed")
+  const finalUserId = userId || "anonymous-offline-user"
 
   console.log("[Supabase] Pushing new log to the cloud...", logData)
 
@@ -55,13 +55,13 @@ export async function addLog(logData) {
     .from('powermap_logs')
     .insert([
       {
-        user_id: userId,
+        user_id: finalUserId,
         state: logData.state,
         area: logData.area,
-        light_up_date: logData.lightUpDate,
-        light_up_time: logData.lightUpTime,
-        light_off_date: logData.lightOffDate,
-        light_off_time: logData.lightOffTime,
+        up_date: logData.upEvent?.date,     
+        up_time: logData.upEvent?.time,     
+        off_date: logData.offEvent?.date,   
+        off_time: logData.offEvent?.time,   
         total_hours: parseFloat(logData.totalHours)
       }
     ])
@@ -74,6 +74,7 @@ export async function addLog(logData) {
 
   return data[0]
 }
+    
 
 // Remove an individual log 
 export async function removeLog(id) {

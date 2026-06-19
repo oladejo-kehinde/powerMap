@@ -25,7 +25,7 @@ export async function ensureSession() {
   return data.user.id
 }
 
-// 1. CLOUD SYNCING: READ ALL NATIONAL RECENT LOGS
+// cloud syncing to both local and cloud
 // Fetches records from the last 24 hours for the overview page
 export async function getLogs() {
   await ensureSession() 
@@ -49,18 +49,18 @@ export async function getLogs() {
   return data
 }
 
-// 2. CLOUD SYNCING: WRITE TO BOTH LOCAL AND CLOUD
+// write a new log entry to both local storage and the cloud
 export async function addLog(logData) {
   // --- Step A: Save to Local Storage first for instant personal math ---
   const localLogs = localStorage.getItem("powermap_local_logs")
   const currentLogs = localLogs ? JSON.parse(localLogs) : []
   
-  // Keep your detailed frontend object intact locally
+  // Keep detailed frontend object intact locally
   const updatedLocalLogs = [logData, ...currentLogs]
   localStorage.setItem("powermap_local_logs", JSON.stringify(updatedLocalLogs))
   console.log("[Local Storage] Log saved locally.")
 
-  // --- Step B: Push clean row to Supabase ---
+  // Push clean row to Supabase
   const userId = await ensureSession()
   const finalUserId = userId || "anonymous-offline-user"
 
@@ -84,10 +84,10 @@ export async function addLog(logData) {
 
   if (error) {
     console.error("[Supabase Sync Error] Cloud write failed:", error.message)
-    // Don't crash the app, since it already saved locally
+   //  console.warn("[Supabase Sync Warning] Log saved locally but failed to sync to cloud. Will retry on next app load.")
   }
 
-  // Return the full updated local array so your UI state updates instantly
+  // Return the full updated local array so UI state updates instantly
   return updatedLocalLogs
 }
 

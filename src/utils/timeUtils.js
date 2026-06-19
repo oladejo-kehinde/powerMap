@@ -26,9 +26,9 @@ export function calculatePowerHours(upDate, upTime, offDate, offTime) {
     diffInMs += 24 * 60 * 60 * 1000; 
   }
 
-  // Convert ms to hours (1 hour = 3,600,000 ms)
+  // Convert ms to hours 
   const totalHours = diffInMs / (1000 * 60 * 60);
 
-  // Return formatted to 2 decimal places (e.g., 4.50 hours)
+  // Return formatted to 2 decimal places
   return Math.max(0, parseFloat(totalHours.toFixed(2)));
 }

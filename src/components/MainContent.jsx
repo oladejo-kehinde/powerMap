@@ -1,7 +1,9 @@
 import LogForm from "./LogForm"
 import TopBar from "./TopBar"
+import NationalOverview from "./NationalOverview" // 1. Import the new view
 
-function MainContent({ activeView }) {
+// Add onLogAdded to the destructured props
+function MainContent({ activeView, onLogAdded }) {
   return (
     <div className="flex-1 flex flex-col h-screen">
 
@@ -14,7 +16,7 @@ function MainContent({ activeView }) {
         {/* Header */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-brand-text tracking-tight">
-            {activeView === "home" ? "Update Power Status" : "National Map"}
+            {activeView === "home" ? "Update Power Status" : "National Overview"}
           </h2>
           <p className="text-brand-muted text-sm mt-1">
             {activeView === "home"
@@ -26,11 +28,11 @@ function MainContent({ activeView }) {
         {/* View Content */}
         <div>
           {activeView === "home" ? (
-            <LogForm />
+            // 2. Pass down onLogAdded to LogForm
+            <LogForm onLogAdded={onLogAdded} />
           ) : (
-            <div className="bg-brand-surface rounded-2xl p-6 border border-brand-border">
-              <p className="text-brand-muted">National map coming soon.</p>
-            </div>
+            // 3. Swap out the placeholder for the real database-connected panel
+            <NationalOverview />
           )}
         </div>
 

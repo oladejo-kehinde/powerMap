@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import Sidebar from "./components/Sidebar"
+import Sidebar from "./components/SideBar"
 import TopBar from "./components/TopBar"
 import MainContent from "./components/MainContent"
 import { getLocationName } from "./utils/geocoding"

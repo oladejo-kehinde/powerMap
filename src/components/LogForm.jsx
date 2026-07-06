@@ -1,193 +1,181 @@
-import { useEffect, useState } from "react"
-import { addLog, getLogs } from "../utils/logStorage"
-import { calculatePowerHours } from "../utils/timeUtils"
+import { useState } from "react"
+import { addLog } from "../utils/logStorage"
 
-const nigerianStates = [
-  "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu",
-  "FCT - Abuja","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Nasarawa","Niger","Ogun","Ondo",
-  "Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara",
-]
+function LogForm({ onLogAdded, isPowerUp, setIsPowerUp, location }) {
+  const [activeTab, setActiveTab] = useState("live")
+  const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0])
+  const [manualUpTime, setManualUpTime] = useState("")
+  const [manualOffTime, setManualOffTime] = useState("")
+  const [feedback, setFeedback] = useState("")
 
-function LogForm({ onLogAdded }) {
-  const [selectedState, setSelectedState] = useState("")
-  const [area, setArea] = useState("")
-  const [logs, setLogs] = useState([])
-  
-  const [upDate, setUpDate] = useState("")
-  const [upTime, setUpTime] = useState("")
-  const [offDate, setOffDate] = useState("")
-  const [offTime, setOffTime] = useState("")
+  const hasLiveLocation = () => Boolean(location?.trim() && location !== "Detecting location..." && location !== "GPS unavailable")
 
-  const [feedback, setFeedback] = useState({ message: "", type: "" })
+  const getLocationDetails = () => {
+    const cleanedLocation = location?.trim()
 
-  useEffect(() => {
-    const savedLogs = getLogs()
-    setLogs(Array.isArray(savedLogs) ? savedLogs : [])
-  }, [])
+    if (!cleanedLocation || cleanedLocation === "Detecting location..." || cleanedLocation === "GPS unavailable") {
+      return { state: "Unknown location", area: "Current location" }
+    }
 
-  const showFeedback = (message, type = "success") => {
-    setFeedback({ message, type })
-    setTimeout(() => setFeedback({ message: "", type: "" }), 5000)
+    const parts = cleanedLocation.split(",").map((part) => part.trim()).filter(Boolean)
+
+    return {
+      state: parts[0] || cleanedLocation,
+      area: parts.length > 1 ? parts.slice(1).join(", ") : "Current area"
+    }
   }
 
-  const handleSubmit = (e) => {
+  const handleLiveToggle = () => {
+    const now = new Date()
+    const todayStr = now.toISOString().split('T')[0]
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+
+    const { state, area } = getLocationDetails()
+
+    if (!isPowerUp) {
+      const startMarker = { date: todayStr, time: timeStr, timestamp: now.getTime() }
+      localStorage.setItem("current_power_session", JSON.stringify(startMarker))
+      setIsPowerUp(true)
+    } else {
+      const savedSession = localStorage.getItem("current_power_session")
+      if (savedSession) {
+        const session = JSON.parse(savedSession)
+        const durationHours = parseFloat(((now.getTime() - session.timestamp) / (1000 * 60 * 60)).toFixed(1))
+        
+        const completeLog = {
+          id: Date.now(),
+          state,
+          area,
+          upEvent: { date: session.date, time: session.time },
+          offEvent: { date: todayStr, time: timeStr },
+          totalHours: durationHours > 0 ? durationHours : 0.5,
+          createdAt: now.toISOString()
+        }
+
+        addLog(completeLog)
+        if (onLogAdded) onLogAdded()
+      }
+      localStorage.removeItem("current_power_session")
+      setIsPowerUp(false)
+    }
+  }
+
+  const handleManualSubmit = (e) => {
     e.preventDefault()
-
-    if (!selectedState || !area || !upDate || !upTime || !offDate || !offTime) {
-      showFeedback("Please fill out all fields before submitting.", "error")
+    if (!manualUpTime || !manualOffTime) {
+      setFeedback("Please fill in both fields")
       return
     }
 
-    const upTimestamp = new Date(`${upDate}T${upTime}`)
-    const offTimestamp = new Date(`${offDate}T${offTime}`)
+    const [upH, upM] = manualUpTime.split(":").map(Number)
+    const [offH, offM] = manualOffTime.split(":").map(Number)
+    let duration = (offH + offM/60) - (upH + upM/60)
+    if (duration < 0) duration += 24
 
-    if (offTimestamp <= upTimestamp) {
-      showFeedback("Error: 'Light Off' time must be after 'Light Up' time.", "error")
-      return
-    }
+    const { state, area } = getLocationDetails()
 
-    const hours = calculatePowerHours(upDate, upTime, offDate, offTime)
-
-    const logEntry = {
+    const completeLog = {
       id: Date.now(),
-      state: selectedState,
+      state,
       area,
-      upEvent: { date: upDate, time: upTime },
-      offEvent: { date: offDate, time: offTime },
-      totalHours: hours,
-      createdAt: new Date().toISOString(),
+      upEvent: { date: manualDate, time: manualUpTime },
+      offEvent: { date: manualDate, time: manualOffTime },
+      totalHours: parseFloat(duration.toFixed(1)),
+      createdAt: new Date().toISOString()
     }
 
-    const updatedLogs = addLog(logEntry)
-    setLogs(updatedLogs)
-
-    setSelectedState("")
-    setArea("")
-    setUpDate("")
-    setUpTime("")
-    setOffDate("")
-    setOffTime("")
-
-    showFeedback(`Logged successfully! Total duration: ${hours} hours.`, "success")
-
-    // Trace log added here 
-    console.log(" [LogForm] Log submitted successfully. Calling onLogAdded() to trigger refresh...")
+    addLog(completeLog)
     if (onLogAdded) onLogAdded()
+
+    setManualUpTime("")
+    setManualOffTime("")
+    setFeedback("Log saved successfully!")
+    setTimeout(() => setFeedback(""), 3000)
   }
 
   return (
-    <div className="space-y-8">
-      <form onSubmit={handleSubmit} className="w-full max-w-lg rounded-2xl border border-brand-border bg-brand-sidebar p-6 text-base leading-relaxed">
-        
-        {feedback.message && (
-          <div className={`mb-6 p-4 rounded-xl text-sm font-semibold border ${
-            feedback.type === "error" 
-              ? "bg-red-500/10 border-red-500/30 text-red-400" 
-              : "bg-green-500/10 border-green-500/30 text-green-400"
-          }`}>
-            {feedback.message}
-          </div>
-        )}
-
-        {/* STATE */}
-        <div className="mb-4">
-          <label htmlFor="state" className="mb-1 block text-sm font-bold text-brand-accent uppercase tracking-normal">
-            State
-          </label>
-          <select
-            id="state"
-            value={selectedState}
-            onChange={(e) => setSelectedState(e.target.value)}
-            required
-            className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base font-normal text-white outline-none transition-all focus:border-brand-accent"
-          >
-            <option value="">Select your state</option>
-            {nigerianStates.map((state) => (
-              <option key={state} value={state}>{state}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Input Area */}
-        <div className="mb-4">
-          <label htmlFor="area" className="mb-1 block text-sm font-bold text-brand-accent uppercase tracking-normal">
-            Area / Neighbourhood
-          </label>
-          <input
-            type="text"
-            id="area"
-            value={area}
-            onChange={(e) => setArea(e.target.value)}
-            placeholder="surulere, wuse2..."
-            required
-            className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base font-normal text-white outline-none transition-all focus:border-brand-accent"
-          />
-        </div>
-
-        <hr className="border-brand-border my-6" />
-
-        {/* LIGHT UP INPUTS */}
-        <h3 className="text-sm font-bold text-green-400 uppercase mb-3 tracking-wide"> Light Up </h3>
-        <div className="mb-6 grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="upDate" className="mb-1 block text-xs font-semibold text-brand-muted uppercase">Date</label>
-            <input
-              type="date"
-              id="upDate"
-              value={upDate}
-              onChange={(e) => setUpDate(e.target.value)}
-              required
-              style={{ colorScheme: "dark" }}
-              className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base text-white outline-none focus:border-brand-accent"
-            />
-          </div>
-          <div>
-            <label htmlFor="upTime" className="mb-1 block text-xs font-semibold text-brand-muted uppercase">Time</label>
-            <input
-              type="time"
-              id="upTime"
-              value={upTime}
-              onChange={(e) => setUpTime(e.target.value)}
-              required
-              style={{ colorScheme: "dark" }}
-              className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base text-white outline-none focus:border-brand-accent"
-            />
-          </div>
-        </div>
-
-        {/* LIGHT OFF INPUTS */}
-        <h3 className="text-sm font-bold text-red-400 uppercase mb-3 tracking-wide"> Light Off </h3>
-        <div className="mb-6 grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="offDate" className="mb-1 block text-xs font-semibold text-brand-muted uppercase">Date</label>
-            <input
-              type="date"
-              id="offDate"
-              value={offDate}
-              onChange={(e) => setOffDate(e.target.value)}
-              required
-              style={{ colorScheme: "dark" }}
-              className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base text-white outline-none focus:border-brand-accent"
-            />
-          </div>
-          <div>
-            <label htmlFor="offTime" className="mb-1 block text-xs font-semibold text-brand-muted uppercase">Time</label>
-            <input
-              type="time"
-              id="offTime"
-              value={offTime}
-              onChange={(e) => setOffTime(e.target.value)}
-              required
-              style={{ colorScheme: "dark" }}
-              className="w-full rounded-xl border border-brand-border bg-zinc-800 px-4 py-3 text-base text-white outline-none focus:border-brand-accent"
-            />
-          </div>
-        </div>
-
-        <button type="submit" className="w-full rounded-xl border border-brand-border bg-brand-accent/10 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800">
-          Log Event
+    <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/30 backdrop-blur-md p-6 w-full space-y-6 shadow-2xl">
+      <div className="flex bg-zinc-950/80 p-1 rounded-xl border border-zinc-900">
+        <button
+          onClick={() => setActiveTab("live")}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+            activeTab === "live" ? "bg-zinc-800 text-white shadow-md border border-zinc-700/50" : "text-zinc-500 hover:text-zinc-400"
+          }`}
+        >
+          Live Report
         </button>
-      </form>
+        <button
+          onClick={() => setActiveTab("manual")}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+            activeTab === "manual" ? "bg-zinc-800 text-white shadow-md border border-zinc-700/50" : "text-zinc-500 hover:text-zinc-400"
+          }`}
+        >
+          History Log
+        </button>
+      </div>
+
+      {activeTab === "live" ? (
+        <div className="text-center py-2 space-y-4">
+          <button
+            onClick={handleLiveToggle}
+            disabled={!hasLiveLocation()}
+            className={`w-full py-2.5 px-4 rounded-lg font-semibold text-xs transition-all duration-300 transform active:scale-[0.98] shadow-md ${
+              isPowerUp 
+                ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                : "bg-blue-500 hover:bg-blue-600 text-white"
+            }`}
+          >
+            {!hasLiveLocation() 
+            ? "Enter your location to get started" 
+            : isPowerUp ? "Power is on. Tap when it goes off." : "Power is off. Tap when it's back on."}
+          </button>
+          <p className="text-xs text-zinc-500 font-medium">
+            {!hasLiveLocation()
+              ? "Location is required to track when power goes on and off."
+              : isPowerUp ? "Power is on. Timing how long it stays on." : "Power is off. Waiting for it to come back."}
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={handleManualSubmit} className="space-y-4">
+          <div>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 block mb-1.5">Date of Event</label>
+            <input 
+              type="date" 
+              value={manualDate} 
+              onChange={(e) => setManualDate(e.target.value)}
+              className="w-full bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-zinc-700 font-medium"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+  <label htmlFor="upTime" className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 block mb-1.5">Power On</label>
+  <input 
+    id="upTime"
+    type="time" 
+    value={manualUpTime}
+    onChange={(e) => setManualUpTime(e.target.value)}
+    required
+    className="w-full rounded-xl border border-brand-border bg-zinc-950/60 px-4 py-3 text-base text-white outline-none focus:border-brand-accent [color-scheme:dark]"  
+  />
+</div>
+  <div>
+  <label htmlFor="offTime" className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 block mb-1.5">Power Off</label>
+  <input 
+    id="offTime"
+    type="time" 
+    value={manualOffTime}
+    onChange={(e) => setManualOffTime(e.target.value)}
+    required
+    className="w-full rounded-xl border border-brand-border bg-zinc-950/60 px-4 py-3 text-base text-white outline-none focus:border-brand-accent [color-scheme:dark]"  
+  />
+</div>
+          </div>
+          <button type="submit" className="w-full bg-brand-accent hover:bg-amber-600 text-zinc-900 text-xs font-bold uppercase tracking-wider py-3.5 rounded-xl transition-all shadow-md active:scale-[0.99]">
+            Submit Light Report
+          </button>
+          {feedback && <p className="text-xs font-medium text-center mt-2 text-emerald-400">{feedback}</p>}
+        </form>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme {
+/* @theme {
   --color-brand-sidebar:  #0a1723;
   --color-brand-surface:  #111f2e;
   --color-brand-hover:    #1a2f42;
@@ -9,4 +9,22 @@
   --color-brand-text:     #e8edf2;
   --color-brand-muted:    #6b8299;
   --color-brand-main:     #0d1b26;
+} */
+
+/* @theme {
+  --color-brand-main: #121214;       
+  --color-brand-sidebar: #0e0e11;    
+  --color-brand-border: #1a1a1a;     
+  --color-brand-muted: #71717a;      
+  --color-brand-accent: #3b82f6;     
+} */
+
+@theme {
+  --color-brand-main: #0c0c0e;       /* Pure obsidian stone background */
+  --color-brand-sidebar: #121215;    /* Deep warm charcoal panels */
+  --color-brand-border: #1e1e24;     /* Crisp, thin high-voltage border lines */
+  --color-brand-accent: #f59e0b;     /* Glowing electric amber filament color */
+  --color-brand-muted: #52525b;    
+  --color-brand-border-2:   #1e3448;
+   
 }

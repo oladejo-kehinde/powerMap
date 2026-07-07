@@ -13,7 +13,6 @@ function NationalOverview() {
 
         allLogs.forEach((log) => {
           const stateName = log.state || "Unknown State"
-          // ⚡ FIXED: Changed log.city to log.area to align with geocoding outputs
           const cityName = log.area || "Unknown District"
 
           if (!nestedMap[stateName]) {
@@ -35,7 +34,6 @@ function NationalOverview() {
           const cityNode = nestedMap[stateName].cities[cityName]
           cityNode.logs.push(log)
           cityNode.users.add(log.user_id || "anonymous")
-          // ⚡ FIXED: Map correctly to snake_case schema property total_hours
           cityNode.totalHours += parseFloat(log.total_hours) || 0
         })
 
@@ -95,9 +93,11 @@ function NationalOverview() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {citiesArray.map((city) => {
-                  const latestLog = city.logs[0] // Since logs query handles descending order natively
+                  const latestLog = city.logs[0]
                   
-                  // ⚡ FIXED: Safeguarded invalid date strings by pulling from clean columns
+                  // ⚡ DETERMINING LIVE STATUS: If up_time exists but there is no off_time yet, power is ON.
+                  const isPowerOn = latestLog && latestLog.up_time && !latestLog.off_time;
+
                   const lastUpdateString = latestLog?.created_at
                     ? new Date(latestLog.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     : "--:--"
@@ -111,7 +111,10 @@ function NationalOverview() {
                       key={city.name}
                       className="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-5 hover:border-zinc-700 transition-all duration-300 shadow-lg relative overflow-hidden group"
                     >
-                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500/30" />
+                      {/* ⚡ DYNAMIC LIVE BARS: Shifts top border dynamically based on current Derived Status */}
+                      <div className={`absolute top-0 left-0 right-0 h-[2px] transition-colors duration-300 ${
+                        isPowerOn ? "bg-emerald-500/50" : "bg-rose-500/50"
+                      }`} />
 
                       <div className="flex justify-between items-start mb-4">
                         <div>
@@ -122,8 +125,14 @@ function NationalOverview() {
                             Last update: {lastUpdateString}
                           </p>
                         </div>
-                        <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest px-2 py-0.5 rounded border bg-zinc-950 border-zinc-800 text-zinc-400">
-                          ● Verified Node
+                        
+                        {/* ⚡ ACTIVE STATUS BADGE */}
+                        <span className={`text-[9px] font-mono font-extrabold uppercase tracking-widest px-2 py-0.5 rounded border transition-colors ${
+                          isPowerOn 
+                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                            : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                        }`}>
+                          ● {isPowerOn ? "Online" : "Outage"}
                         </span>
                       </div>
 

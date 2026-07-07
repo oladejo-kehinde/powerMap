@@ -148,3 +148,21 @@ export async function removeLog(id) {
 
   if (error) console.error("Database delete error:", error.message)
 }
+
+// Add a parameter to only fetch the current user's data for their personal feed/chart
+export async function getPersonalLogs() {
+  const userId = await ensureSession();
+  if (!userId) return [];
+
+  let absoluteISOString = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from('powermap_logs')
+    .select('*')
+    .eq('user_id', userId) //   This isolates the logs to THIS device only!
+    .gte('created_at', absoluteISOString)
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return data;
+}

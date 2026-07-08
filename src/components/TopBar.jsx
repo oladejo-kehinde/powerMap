@@ -87,7 +87,7 @@ function TopBar({ isPowerUp, location, setLocation, setGpsActive, manualLocation
           lastFetchedCoords.current = { lat: latitude, lng: longitude }
           
           console.log("Full address payload:", data.address) 
-        } catch (e) {
+        } catch {
           setLocation(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`)
         }
       },

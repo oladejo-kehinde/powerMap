@@ -16,7 +16,6 @@ export async function getLocationName(latitude, longitude) {
       // Extract city, state, and country from the address object
       const city = address.city || address.town || address.village || address.county
       const state = address.state
-      const country = address.country
  
       // Return formatted: "City, State" or just "City"
       if (city && state) {

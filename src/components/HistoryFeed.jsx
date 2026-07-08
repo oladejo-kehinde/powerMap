@@ -131,7 +131,18 @@ function HistoryFeed({ refreshTrigger }) {
   }
 
   useEffect(() => {
-    fetchTodayLogs()
+    let isActive = true
+
+    const loadLogs = async () => {
+      await fetchTodayLogs()
+      if (!isActive) return
+    }
+
+    void loadLogs()
+
+    return () => {
+      isActive = false
+    }
   }, [refreshTrigger])
 
   const handleDelete = async (id) => {
@@ -141,7 +152,7 @@ function HistoryFeed({ refreshTrigger }) {
       await removeLog(id)
       // Re-trigger localized data load from root state management rather than mutable arrays
       fetchTodayLogs()
-    } catch (error) {
+    } catch {
       alert("Failed to safely delete entry registration database row.")
     }
   }
